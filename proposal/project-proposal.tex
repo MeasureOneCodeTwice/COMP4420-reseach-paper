@@ -1,0 +1,107 @@
+\documentclass[11pt,letterpaper]{article}
+\setlength{\headheight}{14pt}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[margin=1in]{geometry}
+\usepackage{wrapfig}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[justification=centering]{caption}
+\usepackage[subnum]{cases}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1em}
+\usepackage{empheq}
+\usepackage{relsize}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{csquotes}
+\usepackage{comment}
+\graphicspath{ {./figures/} } % figures (images) go into here
+\usepackage[
+backend=biber,
+style=ieee, % IEEE ref format
+]{biblatex}
+\addbibresource{bibliography.bib} %Imports bibliography file
+
+\title{Cache Optimization in The Real World: Through the Lens of the Cache-Oblivious Model}
+\date{\today}
+\author{Logan Decock, Juan Rempel}
+
+\begin{document}
+
+\maketitle
+
+% Use ~ to add a non-breaking space 
+Hello World~\cite{demaine} 
+
+% Math blocks:
+% - `align` (without the asterisk) will place numbers for each line
+
+\begin{enumerate}
+    \item Lists can be bullets, numbered, or other forms of markers
+    \begin{enumerate}
+        \item can also nest the list
+    \end{enumerate}
+    \item Math inline: $O(n) = \# \ \textbf{special symbols must be escaped}$
+    \begin{enumerate}
+        \item Can add a space by simply escaping it via \verb|\ |
+    \end{enumerate}
+    \item Math blocks can be wrapped with \verb|\[ ... \]| or \verb|begin{math}|
+    \begin{enumerate}
+        \item Aligning multiple math lines by the same symbol: use the \verb|align| argument and then prepend \verb|&| to the symbol you want to align and add \verb|\\| where you want to break the line
+        \item FYI, can also do a code block with \verb|\begin{verbatim}|
+    \end{enumerate}
+    \item \verb|log| and some other math terms work best when escaped, so \verb|\log| and \verb|\bmod| vs just \verb|log| and \verb|mod|
+    \item If you want parentheticals, you can use \verb|()|, \verb|{}|, \verb|[]|, or anything else I guess. However, sometimes you want them to be \emph{smart} parentheticals so that they resize to fit the context: $(\frac{N^M}{B})$ vs $\left( \frac{N^M}{B} \right)$ or just manually make them big with $\Bigg( \frac{N}{B} \Bigg)$. \href{https://www.overleaf.com/learn/latex/Brackets_and_Parentheses}{More information here.}
+\end{enumerate}
+
+
+\begin{align*} % the * removes the line numbering
+    O(n \log n) 
+    &= \Theta \left( \frac{N}{B} \bmod n \right) \\
+    &= \Theta (\log n^{\log \log u}) \\
+    &\in \Omega \left[ \underbrace{n}_{\text{\# of elements}} \cdot \underbrace{\log n}_{\text{size of each element}} \right]
+\end{align*}
+
+% numbered section
+\section{Numbered Section}
+
+\subsection{Some Numbered Subsection}
+
+You can just add more \verb|sub| terms to make deeper nested subsections
+
+\subsubsection{Wow, look at this somewhat important tiny section}
+
+\section*{Unnummbered Section}
+
+\subsection*{Some Unnummbered Subsection}
+
+% Multiple figures in a grid on the page, in case we use figures
+% \begin{figure}[h]
+%     \centering
+%     % First Image Block
+%     \begin{minipage}[b]{0.48\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{figure1.png}
+%         \caption{Figure 1 Caption}
+%     \end{minipage}\hfill
+%     % Second Image Block
+%     \begin{minipage}[b]{0.48\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{figure2.png}
+%         \caption{Figure 2 Caption}
+%     \end{minipage}\hfill
+% \end{figure}
+
+\clearpage
+
+% We just add things to the bibliography.bib file, and if we cite it, then it will get printed. Uncited items will not be printed.
+\printbibliography%
+
+\end{document}
