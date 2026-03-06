@@ -29,7 +29,7 @@ style=ieee, % IEEE ref format
 ]{biblatex}
 \addbibresource{bibliography.bib} %Imports bibliography file
 
-\title{Cache Optimization: An evaluation of the cache oblivious model}
+\title{Cache Optimization: Are Cache-Oblivious Algorithms Realistic?}
 \date{\today}
 \author{Logan Decock, Juan Rempel}
 
@@ -38,30 +38,36 @@ style=ieee, % IEEE ref format
 \maketitle
 
 \section{Abstract}
-With the speed of modern CPUs memory latency has come to dominate runtime[citation needed (eric demaine video)]. 
-The cache oblivious model is a cache efficient theoretical model of computation. Analysis under this model measures only the number of transfers between two adjacent levels of memory. Neither the total cache size or block size is known. As a result, algorithms optimized for the cache oblivious model are efficient between any two given levels of the memory hierarchy.
-
+The speed of modern processors has caused memory latency to dominate processing time~\cite{demaine_lecture}. Usually, performance is measured through the lens of the word RAM model, ignoring real costs of fetching data when the data across cache levels.
+The cache-oblivious model is a cache efficient model of theoretical computation. Analysis under this model measures only the number of transfers between two adjacent cache levels without knowing the total cache size or block size. As a result, algorithms optimized for the cache-oblivious model are efficient between any two given levels of the memory hierarchy. In our paper, we will explore the conditions where the real world performance of select algorithms benefit from optimization within the cache-oblivious model over the word RAM model, finding data size and bus latency thresholds where the cache-oblivious optimized versions of said algorithms outperform their word RAM optimized counterparts.
+% We will find thresholds where select algorithms outperform their counterparts in the other model, finding the conditions under which the cache-oblivious optimized algorithm should be chosen for optimal real-world performance.
 
 \section{Motivation}
-Our paper will evaluate the accuracy of the cache oblivious model opposed to the word RAM model in predicting real world algorithm performance. We will consider analogous algorithms and data structures optimized for the cache oblivious model and the word RAM model. We will analyse these algorithm's asymptotic cost in both models and then apply these algorithms to synthetic datasets to measure their real world performance. 
+% Our paper will evaluate the accuracy of the cache oblivious model opposed to the word RAM model in predicting real world algorithm performance. We will consider analogous algorithms and data structures optimized for the cache oblivious model and the word RAM model. We will analyse these algorithm's asymptotic cost in both models and then apply these algorithms to synthetic datasets to measure their real world performance. 
 
-Anecdotally, we have found cache oblivious algorithms tend to have larger constants hidden in the asymptotic cost, resulting in worse runtime on small datasets. We will explore how the cache oblivious algorithms scale as our dataset grows. When data gets large enough a miss at one level of the memory hierarchy can require a request to a database over the network costing on the scale of tens of milliseconds instead of nanoseconds.
+With data fetching being a real cost that could result in multi-cycle stalls in the processor for a given algorithm, we think that performs gains can be achieved through algorithm designs that consider factors beyond the word RAM model, namely the cache-oblivious model.
 
-With these massive costs in mind, we believe the cache oblivious model has the opportunity to succeed the word RAM model for creating algorithms to process massive datasets. We think gives algorithm designers analytical tools to create algorithms that perform better than otherwise possible with the word RAM model. This is especially relevant today with the prevalence of big data with multi terabyte datasets. We hope that in our paper to prove through experiment that the cache oblivious model performs better than the word RAM model on large datasets as well as find the scale at which the cache oblivious becomes the superior model to optimize algorithms in.
+Anecdotally, we have found cache oblivious algorithms tend to have larger constants hidden in the asymptotic cost, resulting in worse runtime on small datasets. We will explore how the cache oblivious algorithms scale as our dataset grows. When data gets large enough a miss at one level of the memory hierarchy can require a request to a data pool over the network costing on the scale of tens of milliseconds instead of nanoseconds.
+
+With these massive costs in mind, we believe the cache oblivious model has the opportunity to supersede the word RAM model for creating algorithms to process massive datasets. We think this gives algorithm designers analytical tools to create algorithms that perform better in the real world than otherwise possible with the word RAM model. This is especially relevant today with the prevalence of big data with multi petabyte datasets, much too large to ignore in real-world performance analysis in a strictly Word RAM model. 
+
+% We hope that in our paper to prove through experiment that the cache oblivious model performs better than the word RAM model on large datasets as well as find the dataset size tipping point at which the cache oblivious becomes the superior model in which to optimize the algorithm.
 
 \section{Format}
-Our paper will mostly a performance comparison paper with a touch of survey paper. 
-We will be comparing the cache oblivious model to the word RAM by measuring the real world performance of 
-algorithms optimized for both algorithms and conclude when which model should be applied to a problem for best
-real world results
+Our project will mostly consist of a performance comparison paper. We will find a few algorithms that we wish to examine, having already found the cache-oblivious counterpart to merge sort being the funnelsort~\cite{demaine}. We have two options of running the comparison tests. Either we run it them on bare metal and compare them on actual physical hardware, or we run them through simulations where we simulate the cache misses. We see benefits on both sides of this decision, and will choose one within the next few days. 
 
-\section{References}
-% How did you generate you bibliographies?
-[x]
-MIT OpenCourseWare, “23. Cache-Oblivious Algorithms: Medians \& Matrices,” YouTube, Dec. 06, 2016. https://www.youtube.com/watch?v=CSqbjfCCLrU (accessed Mar. 06, 2026).
+\section{Timeline}
+\begin{itemize}
+    \item \textbf{March 10:} select 1--2 other algorithms to analyze
+    \item \textbf{March 10:} understand the selected agorithms in their respective theoretical models
+    \item \textbf{March 17:} program completed for our experimentation, proceed to experimentation
+    \item \textbf{March 22:} experimentation and analysis completed; start presentation slides
+    \item \textbf{March 24:} presentation slides completed, presentation rehearsed; start paper
+    \item \textbf{April 7:} paper completed 
+\end{itemize}
 
-\clearpage
+% \clearpage
 % We just add things to the bibliography.bib file, and if we cite it, then it will get printed. Uncited items will not be printed.
-%\printbibliography%
+\printbibliography%
 
 \end{document}
