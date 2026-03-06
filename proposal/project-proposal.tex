@@ -29,7 +29,7 @@ style=ieee, % IEEE ref format
 ]{biblatex}
 \addbibresource{bibliography.bib} %Imports bibliography file
 
-\title{Cache Optimization in The Real World: Through the Lens of the Cache-Oblivious Model}
+\title{Cache Optimization: An evaluation of the cache oblivious model}
 \date{\today}
 \author{Logan Decock, Juan Rempel}
 
@@ -37,71 +37,31 @@ style=ieee, % IEEE ref format
 
 \maketitle
 
-% Use ~ to add a non-breaking space 
-Hello World~\cite{demaine} 
-
-% Math blocks:
-% - `align` (without the asterisk) will place numbers for each line
-
-\begin{enumerate}
-    \item Lists can be bullets, numbered, or other forms of markers
-    \begin{enumerate}
-        \item can also nest the list
-    \end{enumerate}
-    \item Math inline: $O(n) = \# \ \textbf{special symbols must be escaped}$
-    \begin{enumerate}
-        \item Can add a space by simply escaping it via \verb|\ |
-    \end{enumerate}
-    \item Math blocks can be wrapped with \verb|\[ ... \]| or \verb|begin{math}|
-    \begin{enumerate}
-        \item Aligning multiple math lines by the same symbol: use the \verb|align| argument and then prepend \verb|&| to the symbol you want to align and add \verb|\\| where you want to break the line
-        \item FYI, can also do a code block with \verb|\begin{verbatim}|
-    \end{enumerate}
-    \item \verb|log| and some other math terms work best when escaped, so \verb|\log| and \verb|\bmod| vs just \verb|log| and \verb|mod|
-    \item If you want parentheticals, you can use \verb|()|, \verb|{}|, \verb|[]|, or anything else I guess. However, sometimes you want them to be \emph{smart} parentheticals so that they resize to fit the context: $(\frac{N^M}{B})$ vs $\left( \frac{N^M}{B} \right)$ or just manually make them big with $\Bigg( \frac{N}{B} \Bigg)$. \href{https://www.overleaf.com/learn/latex/Brackets_and_Parentheses}{More information here.}
-\end{enumerate}
+\section{Abstract}
+With the speed of modern CPUs memory latency has come to dominate runtime[citation needed (eric demaine video)]. 
+The cache oblivious model is a cache efficient theoretical model of computation. Analysis under this model measures only the number of transfers between two adjacent levels of memory. Neither the total cache size or block size is known. As a result, algorithms optimized for the cache oblivious model are efficient between any two given levels of the memory hierarchy.
 
 
-\begin{align*} % the * removes the line numbering
-    O(n \log n) 
-    &= \Theta \left( \frac{N}{B} \bmod n \right) \\
-    &= \Theta (\log n^{\log \log u}) \\
-    &\in \Omega \left[ \underbrace{n}_{\text{\# of elements}} \cdot \underbrace{\log n}_{\text{size of each element}} \right]
-\end{align*}
+\section{Motivation}
+Our paper will evaluate the accuracy of the cache oblivious model opposed to the word RAM model in predicting real world algorithm performance. We will consider analogous algorithms and data structures optimized for the cache oblivious model and the word RAM model. We will analyse these algorithm's asymptotic cost in both models and then apply these algorithms to synthetic datasets to measure their real world performance. 
 
-% numbered section
-\section{Numbered Section}
+Anecdotally, we have found cache oblivious algorithms tend to have larger constants hidden in the asymptotic cost, resulting in worse runtime on small datasets. We will explore how the cache oblivious algorithms scale as our dataset grows. When data gets large enough a miss at one level of the memory hierarchy can require a request to a database over the network costing on the scale of tens of milliseconds instead of nanoseconds.
 
-\subsection{Some Numbered Subsection}
+With these massive costs in mind, we believe the cache oblivious model has the opportunity to succeed the word RAM model for creating algorithms to process massive datasets. We think gives algorithm designers analytical tools to create algorithms that perform better than otherwise possible with the word RAM model. This is especially relevant today with the prevalence of big data with multi terabyte datasets. We hope that in our paper to prove through experiment that the cache oblivious model performs better than the word RAM model on large datasets as well as find the scale at which the cache oblivious becomes the superior model to optimize algorithms in.
 
-You can just add more \verb|sub| terms to make deeper nested subsections
+\section{Format}
+Our paper will mostly a performance comparison paper with a touch of survey paper. 
+We will be comparing the cache oblivious model to the word RAM by measuring the real world performance of 
+algorithms optimized for both algorithms and conclude when which model should be applied to a problem for best
+real world results
 
-\subsubsection{Wow, look at this somewhat important tiny section}
-
-\section*{Unnummbered Section}
-
-\subsection*{Some Unnummbered Subsection}
-
-% Multiple figures in a grid on the page, in case we use figures
-% \begin{figure}[h]
-%     \centering
-%     % First Image Block
-%     \begin{minipage}[b]{0.48\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{figure1.png}
-%         \caption{Figure 1 Caption}
-%     \end{minipage}\hfill
-%     % Second Image Block
-%     \begin{minipage}[b]{0.48\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{figure2.png}
-%         \caption{Figure 2 Caption}
-%     \end{minipage}\hfill
-% \end{figure}
+\section{References}
+% How did you generate you bibliographies?
+[x]
+MIT OpenCourseWare, “23. Cache-Oblivious Algorithms: Medians \& Matrices,” YouTube, Dec. 06, 2016. https://www.youtube.com/watch?v=CSqbjfCCLrU (accessed Mar. 06, 2026).
 
 \clearpage
-
 % We just add things to the bibliography.bib file, and if we cite it, then it will get printed. Uncited items will not be printed.
-\printbibliography%
+%\printbibliography%
 
 \end{document}
