@@ -54,7 +54,9 @@ With these massive costs in mind, we believe the cache-oblivious model has the o
 % We hope that in our paper to prove through experiment that the cache-oblivious model performs better than the word RAM model on large datasets as well as find the dataset size tipping point at which the cache-oblivious becomes the superior model in which to optimize the algorithm.
 
 \section{Format}
-Our project will mostly consist of a performance comparison paper. We will find a few algorithms that we wish to examine, having already found the cache-oblivious counterpart to merge sort being funnelsort~\cite{demaine}. We have two options of running the comparison tests. Either we run them on bare metal and compare them on actual physical hardware, or we run them through simulations where we simulate the cache misses. We see benefits on both sides of this decision, and will choose one within the next few days. 
+Our project will mostly consist of a performance comparison paper. We will find a few algorithms that we wish to examine, having already found the cache-oblivious counterpart to merge sort being funnelsort~\cite{demaine}. To test and analyze the algorithms, we will run them through simulations where we simulate the cache misses. 
+
+Within our research, we will be relying heavily on Demaine's paper as the foundation for our understanding of cache-oblivious algorithms~\cite{demaine}. Since our research is not meant to know specific hardware specifications, we will ignore other similar models such as the cache-aware or external memory models. We will start with our algorithm selection by looking at two papers by Brodal et al., in which are described a \emph{lazy funnelsort} and \emph{binary tree}~\cite{brodal_bst}~\cite{brodal_lazyfunnel}. Since we'll be implementing the code for the funnelsort, we may also need to reference the original \emph{funnelsort} as introduced by Frigo et al.~\cite{frigo}.
 
 \section{Timeline}
 \begin{itemize}
