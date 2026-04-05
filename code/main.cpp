@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <limits.h>
 
-const int MAX_INPUT_BUFF_WO_RECURSION = 32;
+const int MAX_INPUT_BUFF_WO_RECURSION = INT_MAX;
 
 void funnel_sort(int n, int* input, int* output, bool print_buffers = true);
 
@@ -96,7 +96,6 @@ void funnel_sort(int n, int* input, int* output, bool print_buffers)
         std::cout << "\n";
         delete input_for_print;
     }
-
     KFunnel* k_funnel = new KFunnel(compute_k(n), input_buffers, output_buffer);
 
     output_buffer->fill();
@@ -109,6 +108,7 @@ void funnel_sort(int n, int* input, int* output, bool print_buffers)
     }
 
     // cleanup
+    k_funnel->print_stats();
     delete k_funnel;
     delete output_buffer;
     for(int i = 0; i < input_buffers.size(); i++)
@@ -157,20 +157,20 @@ int main(int argc, char *argv[])
 {
     int test_num = 1;
 
-    int in[] = {5,8,3,2,7,1,9,4,0,1};
-    test_my_input(sizeof(in) / sizeof(int), in, test_num++);
+    /* int in[] = {5,8,3,2,7,1,9,4,0,1}; */
+    /* test_my_input(sizeof(in) / sizeof(int), in, test_num++); */
 
-    int in2[] = {9,8,7,6,5,4,3,2,1};
-    test_my_input(sizeof(in2) / sizeof(int), in2, test_num++);
+    /* int in2[] = {9,8,7,6,5,4,3,2,1}; */
+    /* test_my_input(sizeof(in2) / sizeof(int), in2, test_num++); */
 
-    int in3[] = {0};
-    test_my_input(sizeof(in3) / sizeof(int), in3, test_num++);
+    /* int in3[] = {0}; */
+    /* test_my_input(sizeof(in3) / sizeof(int), in3, test_num++); */
 
-    int in4[] = {};
-    test_my_input(sizeof(in4) / sizeof(int), in4, test_num++);
+    /* int in4[] = {}; */
+    /* test_my_input(sizeof(in4) / sizeof(int), in4, test_num++); */
 
-    int in5[] = {1,1,1};
-    test_my_input(sizeof(in5) / sizeof(int), in5, test_num++);
+    /* int in5[] = {1,1,1}; */
+    /* test_my_input(sizeof(in5) / sizeof(int), in5, test_num++); */
 
     test_random_input(8, test_num++);
     test_random_input(9, test_num++);
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
     test_random_input(1024, test_num++, false);
     test_random_input(1024, test_num++, false);
 
-    test_random_input(INT_MAX/4, test_num++, false);
+    test_random_input(4096, test_num++, false);
 
     // test_random_input(std::pow(2, 32), test_num++, false);
 

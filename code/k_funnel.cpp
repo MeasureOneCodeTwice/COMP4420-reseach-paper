@@ -2,37 +2,54 @@
 #include "k_funnel.h"
 
 #include <vector>
+#include <iostream>
 #include <cmath>
 #include <assert.h>
 
-void KFunnel::setup_middle_buffers()
+
+void KFunnel::create_middle_buffers()
 {
-    int middle_buffer_size = std::ceil( std::pow(this->rootk, 3) );
-    int middle_buffers_total_space = middle_buffer_size * rootk;
+    int middle_buffers_total_space = this->num_middle_buffers() * this->middle_buffer_size();
     this->middle_buffers_memory = new int[middle_buffers_total_space];
-    for(int i = 0; i < rootk; i++)
+    MEMORY_ALLOCATED += middle_buffers_total_space;
+
+    for(int i = 0; i < this->num_middle_buffers(); i++)
     {
-        int offset = i * middle_buffer_size;
-        this->middle_buffers.push_back(new Buffer(middle_buffer_size, &this->middle_buffers_memory[offset]));
+        int offset = i * this->middle_buffer_size();
+        this->middle_buffers.push_back(new Buffer(this->middle_buffer_size(), &this->middle_buffers_memory[offset]));
+        BUFFERS_ALLOCATED++;
     }
 }
 
-void KFunnel::setup_bottom_funnels()
+//"where the buffers are don't matter, as long as each funnel is laid out contigiously"
+void KFunnel::create_bottom_funnels()
 {
-    for(int i = 0; i < this->rootk; i++)
+    int input_buffers_allocated = 0;
+    int input_buffers_available = this->input_buffers.size(); 
+    for(int i = 0; i < this->num_bottom_funnels(); i++)
     {
         // may not have a perfect number of input buffers for each bottom funnel, 
         // last funnel may have fewer inputs
-        int start_index = i * this->rootk;
-        int end_index = std::min( (int)this->input_buffers.size(), (i + 1) * this->rootk);
-        std::vector<Buffer*> sliced_input_buffers;
+        int num_buffers_for_funnel = std::min(
+                input_buffers_available,
+                this->bottom_funnel_size()
 
-        for(int j = start_index; j < end_index; j++)
+        );
+
+
+        //TODO: Find a better way to do this.
+        std::vector<Buffer*> funnel_buffers;
+        for(int j = input_buffers_allocated; j < this->input_buffers.size(); j++)
         {
-            sliced_input_buffers.push_back(this->input_buffers[j]);
+            funnel_buffers.push_back(this->input_buffers[j]);
         }
 
-        bottom_funnels.push_back(new KFunnel(this->rootk, sliced_input_buffers, this->middle_buffers[i]));
+        bottom_funnels.push_back(
+                new KFunnel(this->bottom_funnel_size(), input_buffers, this->middle_buffers[i])
+        );
+
+        input_buffers_allocated += num_buffers_for_funnel; 
+        input_buffers_available -= num_buffers_for_funnel; 
     }
 }
 
@@ -40,12 +57,14 @@ void KFunnel::link_buffer_feeders()
 {
     if (k > BASE_K)
     {
+        assert(this->middle_buffers.size() == this->num_middle_buffers());
+        assert(this->bottom_funnels.size() == this->num_bottom_funnels());
+        assert(this->num_bottom_funnels() == this->num_middle_buffers());
+
         // output_buffer fed by top_funnel
         this->output_buffer->link_feeder_funnel(this->top_funnel);
-    
         // middle_buffers are fed by bottom_funnels
-        assert(this->middle_buffers.size() == this->bottom_funnels.size());
-        for(int i = 0; i < this->middle_buffers.size(); i++)
+        for(int i = 0; i < this->num_middle_buffers(); i++)
         {
             Buffer* curr_buff = this->middle_buffers[i];
             curr_buff->link_feeder_funnel(this->bottom_funnels[i]);
@@ -78,18 +97,16 @@ KFunnel::KFunnel(int k, std::vector<Buffer*> input_buffers, Buffer* output_buffe
     //   with middle_buffers connecting top and bottom funnels
     if (k > BASE_K)
     {
-        // create middle buffers
-        this->setup_middle_buffers();
+        this->create_middle_buffers();
 
-        // create top funnel
         // inputs: middle_buffers
         // output: output_buffer
-        this->top_funnel = new KFunnel(this->rootk, this->middle_buffers, this->output_buffer);
+        this->top_funnel = new KFunnel(this->top_funnel_size(), this->middle_buffers, this->output_buffer);
+        FUNNELS_ALLOCATED++;
 
-        // create bottom funnels
         // inputs: input_buffers, rootk input buffs for each funnel
         // output: middle_buffers, one for each funnel
-        this->setup_bottom_funnels();
+        this->create_bottom_funnels();
 
     }
     // link all buffers to their feeders
@@ -179,4 +196,45 @@ KFunnel::~KFunnel()
     {
         delete[] this->middle_buffers_memory;
     }
+}
+
+
+int KFunnel::memory_allocated() {
+    int memory_allocated = this->MEMORY_ALLOCATED;
+    for(int i = 0; i < this->bottom_funnels.size(); i++) {
+        memory_allocated += this->bottom_funnels[i]->memory_allocated();
+    }
+    if(this->top_funnel != nullptr) {
+        memory_allocated += this->top_funnel->memory_allocated();
+    }
+    return memory_allocated;
+}
+int KFunnel::funnels_allocated() {
+    int memory_allocated = this->FUNNELS_ALLOCATED;
+    for(int i = 0; i < this->bottom_funnels.size(); i++) {
+        memory_allocated += this->bottom_funnels[i]->funnels_allocated();
+    }
+    if(this->top_funnel != nullptr) {
+        memory_allocated += this->top_funnel->funnels_allocated();
+    }
+    return memory_allocated;
+}
+int KFunnel::buffers_allocated() {
+
+    int memory_allocated = this->BUFFERS_ALLOCATED;
+    for(int i = 0; i < this->bottom_funnels.size(); i++) {
+        memory_allocated += this->bottom_funnels[i]->buffers_allocated();
+    }
+    if(this->top_funnel != nullptr) {
+        memory_allocated += this->top_funnel->buffers_allocated();
+    }
+    return memory_allocated;
+}
+
+void KFunnel::print_stats() {
+
+    std::cout << "MEMORY_ALLOCATED: " << this->memory_allocated() << std::endl;
+    std::cout << "FUNNELS_ALLOCATED: " << this->funnels_allocated()  << std::endl;
+    std::cout << "BUFFERS_ALLOCATED: " << this->buffers_allocated()   << std::endl;
+
 }
