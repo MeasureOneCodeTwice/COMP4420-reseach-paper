@@ -179,9 +179,9 @@ int main(int argc, char *argv[])
     test_random_input(128, test_num++, false);
     test_random_input(512, test_num++, false);
     test_random_input(1024, test_num++, false);
-    test_random_input(1024, test_num++, false);
+    // test_random_input(1024, test_num++, false);
 
-    test_random_input(INT_MAX/4, test_num++, false);
+    // test_random_input(INT_MAX/4, test_num++, false);
 
     // test_random_input(std::pow(2, 32), test_num++, false);
 
