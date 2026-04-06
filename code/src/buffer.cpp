@@ -1,27 +1,26 @@
+#include "../include/buffer.h"
+#include "../include/k_funnel.h"
 
-#include "buffer.h"
-#include "k_funnel.h"
-
+#include <assert.h>
+#include <stdexcept>
+#include <span>
 #include <iostream>
 
 // pass in pointer to memory
 // the memory is managed in the funnels, the buffer just adds a layer of abstraction so we use it with methods
-Buffer::Buffer(int capacity, int* data) : Buffer(capacity, 0, data){}
-
-Buffer::Buffer(int capacity, int size, int* data)
+Buffer::Buffer() : Buffer(std::span<int>(), 0) {}
+Buffer::Buffer(std::span<int> data) : Buffer(data, 0) {}
+Buffer::Buffer(std::span<int> data, int fullness) 
 {
-    this->capacity = capacity;
     this->read_offset = 0;
-    this->write_offset = size;
+    this->write_offset = fullness;
     this->data = data;
     this->feeder_funnel = nullptr;
 }
 
 // insert data to back of data array
-bool Buffer::push_back(int val)
+void Buffer::push_back(int val)
 {
-    bool success = false;
-
     // reset offsets if the array is empty
     if (this->is_empty())
     {
@@ -30,13 +29,13 @@ bool Buffer::push_back(int val)
     }
 
     // only write if there's space at the back of this buffer
-    if (this->capacity > this->write_offset)
+    if (this->data.size() <= this->write_offset)
     {
-        data[write_offset] = val;
-        write_offset++;
-        success = true;
+        throw std::out_of_range("Not enough buffer space.");
     }
-    return success;
+
+    data[write_offset] = val;
+    write_offset++;
 }
 
 // read value from front of array WITHOUT moving read_offset
@@ -47,6 +46,7 @@ int* Buffer::peek_front()
     {
         val = &(this->data[this->read_offset]);
     }
+    
     return val;
 }
 
@@ -72,7 +72,7 @@ void Buffer::fill()
     if(this->feeder_funnel == nullptr)
     {
         // can't fill this one, it has no feeder
-        // must be the top level funnel input
+        // must be a bottom level funnel
         return;
     }
 
@@ -92,27 +92,34 @@ void Buffer::fill()
 
 int Buffer::size()
 {
-    return this->write_offset - this->read_offset;
+    const int size = this->write_offset - this->read_offset;
+    if(size < 0) {
+        std::cout << (this->data.size()) << std::endl;
+        std::cout << "this->write_offset:" << this->write_offset << std::endl; 
+        std::cout << "this->read_offset:" << this->read_offset << std::endl; 
+    }
+    return size;
 }
 
 bool Buffer::is_empty()
 {
-    return this->size() <= 0;
+    assert(this->size() >= 0);
+    return this->size() == 0;
 }
 
 bool Buffer::is_full()
 {
-    return this->size() >= this->capacity;
+    return this->size() >= this->data.size();
 }
 
 void Buffer::print()
 {
     std::cout << "[";
-    for(int i = 0; i < this->capacity; i++)
+    for(int i = 0; i < this->data.size(); i++)
     {
         std::cout << this->data[i];
 
-        if(i < this->capacity - 1)
+        if(i < this->data.size() - 1)
         {
             std::cout << ", ";
         }
@@ -121,7 +128,11 @@ void Buffer::print()
     std::cout << "]\n";
 }
 
+std::span<int> Buffer::get_contents() {
+    return  this->data.subspan(this->read_offset, this->size());
+}
+
 Buffer::~Buffer()
 {
-    // nothing on the heap
+    //We don't own the memory backing the buffer
 }
