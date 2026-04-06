@@ -1,5 +1,5 @@
 % !TEX program = xelatex
-\documentclass[aspectratio=169]{beamer}
+\documentclass[aspectratio=169, xcolor=dvipsnames]{beamer}
 \usetheme{metropolis}
 
 % metropolis theme was built with Fira font in mind...
@@ -29,7 +29,7 @@
 \usepackage{tikz}
 \usetikzlibrary{matrix}
 \usetikzlibrary{positioning}
-\usepackage[style=ieee, backend=biber]{biblatex}
+\usepackage[style=authoryear, backend=biber]{biblatex}
 \addbibresource{bibliography.bib}
 
 \title{Cache Optimization: Better for Big Data?}
@@ -263,7 +263,7 @@ for (int i = 0; i < n; i++){
 % 20 seconds
 \begin{frame}[fragile]{Cache-Oblivious Model: Formal Definition}
     
-    \begin{columns}
+    \begin{columns}[T]
         \begin{column}{0.53\textwidth}
             \begin{itemize}
                 \item $N$: \# word accesses
@@ -274,7 +274,7 @@ for (int i = 0; i < n; i++){
 
             \medskip
 
-            Assumptions:\ \cite{demaine}
+            Assumptions:\ [\cite{demaine}]
 
             \begin{itemize}
                 \item Fully associative cache: $\frac{M}{B}\text{- way}$
@@ -386,11 +386,11 @@ for (int i = 0; i < n; i++){
     \end{columns}
 \end{frame}
 
-\section{Funnelsort: Cache-Oblivous Optimal Sorting}
+\section{Lazy Funnelsort: Cache-Oblivous Optimal Sorting}
 
 \begin{frame}[fragile]{Recall Mergesort}
 
-    \begin{columns}
+    \begin{columns}[T]
         \begin{column}{0.48\textwidth}
             \centering
             \begin{tikzpicture}
@@ -538,7 +538,7 @@ for (int i = 0; i < n; i++){
 
     \begin{itemize}
         \item Word RAM Model: $O(n \log n)$ runtime
-        \item Cache-Oblivious Model:\ \cite{demaine}
+        \item Cache-Oblivious Model:\ [\cite{demaine}]
         \begin{itemize}
             \item recursive splits: free $\implies$ \textit{just math}
             \item merge requires scanning 3 arrays in parallel: each scan \alert{$O(\frac{N}{B} + 1)$}
@@ -547,19 +547,120 @@ for (int i = 0; i < n; i++){
         \end{itemize}
     \end{itemize}
 
-    \textit{Can we make this even more cache optimal?} 
-    \uncover<2->{\alert{$\frac{M}{B}$-way mergesort $\in O(\frac{N}{B} \log_{\frac{M}{B}} \frac{N}{B})$}}
+    \textit{Can we make this even more cache optimal?}
+    \uncover<2->{\alert{$\frac{M}{B}$-way mergesort $\in \Theta(\frac{N}{B} \log_{M/B} \frac{N}{B})$}\ [\cite{demaine}] \\ But\ldots we can do that without knowing hardware specs: $B$ and $M$ }
 \end{frame}
 
-\begin{frame}{Funnelsort: Introduction}
+\begin{frame}{Lazy Funnelsort: Introduction}
+    
+    \textbf{Idea}: do as much sorting as possible while keeping the word in cache
 
-    \begin{figure}
-        \includegraphics[width=0.5\textwidth]{image3.png}
-        \caption{Recursive nature of Funnelsort\ \cite{frigo}}
-    \end{figure}
+    \textbf{Buffers}: instead of completely merging two subarrays, partially merge them \\ $\implies$ float sorted chunks up
 
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{enumerate}
+                \item split array into $K=N^{1/3}$ contiguous segments \\
+                $\implies$ each segment size $= \frac{N}{K} = N^{2/3}$
+                \item recursively sort each segment
+                \item apply the $K$-funnel to merge the sorted segments
+            \end{enumerate}
+            [\cite{demaine}]
+        \end{column}
+
+        \begin{column}{0.48\textwidth}
+            \vspace{-20pt}
+            \begin{figure}
+                \includegraphics[width=0.85\textwidth]{image3.png}
+                \caption{Recursive nature of Funnelsort\ [\cite{frigo}]}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Funnelsort: Single $K$-Funnel Instance}
+
+    % A single instance of a \textcolor{MidnightBlue}{$K$-funnel}
+
+    % \vspace{-5pt}
+    \begin{columns}[T]
+
+        \begin{column}{0.55\textwidth}
+            \begin{itemize}\itemsep0.1em
+                \item $K$ input buffers, $1$ output buffer
+                \item one \textcolor{MidnightBlue}{$\sqrt{K}$-funnel} at the top
+                \item $\sqrt{K}$\ \# of \textcolor{MidnightBlue}{$\sqrt{K}$-funnels} at the bottom
+                \item linked by $\sqrt{K}$\ \# of \textcolor{BurntOrange}{middle buffers}
+                % \begin{itemize}
+                %     \item each buffer size is $K^{3/2}$ 
+                %     \item $\sqrt{K} \cdot K^{3/2} = K^2$ total space for all buffers in this $K$-funnel
+                % \end{itemize}
+                % \\ $\rightarrow$ each buffer size is $K^{3/2}$ 
+                % \\ $\implies \sqrt{K} \cdot K^{3/2} = K^2$ total space for all buffers in this $K$-funnel
+            \end{itemize}
+            % \vspace{0.5cm}
+            \textbf{Lazy Merging (The Magic):}
+            \begin{itemize}\itemsep0.1em
+                \item bottom funnels do not process all \textcolor{ForestGreen}{$K^{5/2}$ data} at once
+                \item they run just enough to fill a $K^{3/2}$ \textcolor{BurntOrange}{middle buffer}, then \textcolor{RoyalPurple}{pause}
+                \item \texttt{fill()} called on output buffer; and if any of its input buffers are empty, \texttt{fill()} is called on the empty buffer
+                % \\sorted chunks only "float up" when the top funnel empties a buffer and demands more data
+            \end{itemize}
+            
+            % $\implies$ each $\sqrt{K}$-funnel at the bottom needs to run $K$ times to process all $\sqrt{K} \cdot K^2 = K^{5/2}$ input data $\implies$ each run it will fill up its $K^{3/2}$ size output buffer, floating up the a chunk of min values
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \vspace{-15pt}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{Page1.png}
+            \end{figure}
+            
+        \end{column}
+        
+    \end{columns}
 
 \end{frame}
+
+\begin{frame}{Funnelsort: Base Case}
+
+    \begin{columns}[T]
+
+        \begin{column}{0.55\textwidth}
+            $K=2 \implies$ \textcolor{MidnightBlue}{$2$-funnel} 
+            
+            \medskip
+
+            $\implies$ A simple 2-way merge!
+
+            \bigskip
+            \begin{itemize}
+                \item $2$ input buffers, $1$ output buffer
+                \item no nested \textcolor{MidnightBlue}{funnels}
+                \item no \textcolor{BurntOrange}{middle buffers}
+                \item it simply:
+                \begin{itemize}
+                    \item fills the output buffer
+                    \item then waits to be called again
+                    \item repeat
+                \end{itemize}
+                % \begin{itemize}
+                %     \item each buffer size is $K^{3/2}$ 
+                %     \item $\sqrt{K} \cdot K^{3/2} = K^2$ total space for all buffers in this $K$-funnel
+                % \end{itemize}
+                % \\ $\rightarrow$ each buffer size is $K^{3/2}$ 
+                % \\ $\implies \sqrt{K} \cdot K^{3/2} = K^2$ total space for all buffers in this $K$-funnel
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \vspace{-15pt}
+            \begin{figure}
+                \includegraphics[height=0.9\textheight]{Page2.png}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+ 
 
 \begin{frame}[allowframebreaks]{References}
     \printbibliography%
