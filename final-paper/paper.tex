@@ -1,0 +1,115 @@
+\documentclass[11pt, letterpaper]{article}
+
+% --- Packages ---
+\usepackage[margin=1in]{geometry} % Standard 1-inch margins
+\usepackage{amsmath, amssymb}     % Math formatting
+\usepackage{graphicx}             % Figures
+\usepackage{listings}             % Code blocks
+\usepackage{xcolor}               % Code highlighting colors
+\usepackage{cite}                 % Bibliography
+
+% --- Code Block Styling ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+% --- Document Info ---
+\title{Cache Optimization: Are Our Algorithms Realistic?\\
+\large {(Some Tagline)}}
+\author{Juan Rempel \and Logan Decock}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Our abstract goes here.
+\end{abstract}
+
+\section{Introduction}
+
+Home PC hardware $\rightarrow$ CPU stalls with each memory fetch
+
+Problems with the Word RAM model
+
+In this paper, we will learn about cache optimization through the lens of the Cache-Oblivious model. Then we will explore a few algorithms, namely funnelsort, and what make them cache optimal on all hardware. We will focus this section primarily on the funnelsort algorithm, including our attempt at implementing it. Finally, we will discuss challenges we faced, limitations with our research, and potential for future work and improvements.
+
+\section{The Cache-Oblivious Model}
+
+If cache optimality is the goal, we've already seen why the Word RAM model of analysis is not the optimal lens by which to analysze this. Though we've already alluded to us wanting to be oblivious to hardware specifications with our analysis, forcing the algorithms to be cache optimal regardless of the hardware it is running on, we believe that the cache-oblivious model is best understood intuitively by building up from analysis models that \textit{do} know hardware specifications.
+
+Naturally, the External Memory Model is the first in our journey. This model {(explain what its assumptions are, what it cares about, and what its limitations are)}. 
+
+We must then introduce the Ideal-Cache Model, as it now abstracts the hardware further. {(explain this model, what it assumes on top of the external memory model, but still has some limitations)}.
+
+Finally, we arrive at our long-awaited Cache-Oblivious Model. {(explain what this model does that none of the previous models did, acknowledge what assumptions we need to make for this model to work, and how those limitations affect the real world)}
+
+With the Cache-Oblivious Model in hand, we are now ready to examine actual data structures and algorithms. 
+%Algorithms within the cache-oblivious model usually require a supporting data structure to ensure memory is stored in cache optimally. 
+%We will focus primarily on algorithms, though we will be required to understand the data structure supporting it as this becomes critical in cache optimization.
+
+
+\section{Algorithm / Data Structure To Understand Before Funnelsort}
+
+\textit{(Might have to yap about some data structures or algorithms before introducing funnelsort)}
+
+We are now well equipped to study the funnelsort algorithm. This sorting algorithm utilizes concepts directly from the data structures and algorithms we have already examined in the cache-oblivious model.
+
+\section{Funnelsort}
+
+Funnelsort may be a novel sorting algorithm, but its roots are inherited from mergesort. Let's build up to the funnelsort algorithm through targetting cache optimality in mergesort.
+
+We are well familiar with mergesort. {(quick recap)} 
+The basic $2$-way mergesort has a runtime complexity of $O(n \log n)$ in the Word RAM model. {(examine mergesort in cache-oblivious model, then make it more cache optimal, only to realize we needed to know hardware specs to do so.. )} We can achieve the same cache complexity without knowing any hardware specifications. 
+
+{(introduce funnelsort)}
+
+\subsection{How it works}
+
+\subsection{Spatial complexity}
+
+\subsection{Cache complexity}
+
+\section{Implementing Funnelsort}
+
+\section{Challenges}
+
+\section{Limitations and Future Work}
+
+\section{Conclusion}
+
+
+% Example of how to insert C++ code
+% \begin{lstlisting}[language=C++, caption=Some caption]
+% int* output = new int[size];
+% funnel_sort(size, input, output, print_buffers);
+% delete[] output;
+% \end{lstlisting}
+
+
+\bibliographystyle{plain}
+\bibliography{references} % Requires a references.bib file
+
+\end{document}
