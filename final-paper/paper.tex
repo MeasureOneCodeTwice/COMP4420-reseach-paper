@@ -5,8 +5,15 @@
 \usepackage{amsmath, amssymb}     % Math formatting
 \usepackage{graphicx}             % Figures
 \usepackage{listings}             % Code blocks
-\usepackage{xcolor}               % Code highlighting colors
-\usepackage{cite}                 % Bibliography
+\usepackage[dvipsnames]{xcolor}               % Code highlighting colors
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{tikz}
+\usetikzlibrary{matrix}
+\usetikzlibrary{positioning}
+% \usepackage{parskip}
+\usepackage[style=ieee, backend=biber]{biblatex}
+\addbibresource{bibliography.bib}
 
 % --- Code Block Styling ---
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -36,7 +43,7 @@
 
 % --- Document Info ---
 \title{Cache Optimization: Are Our Algorithms Realistic?\\
-\large {(Some Tagline)}}
+\large \textcolor{red}{(need some tagline)}}
 \author{Juan Rempel \and Logan Decock}
 \date{\today}
 
@@ -45,24 +52,159 @@
 \maketitle
 
 \begin{abstract}
-Our abstract goes here.
+
+    \textcolor{red}{(need to fill in the abstract)}
+
 \end{abstract}
 
 \section{Introduction}
 
-Home PC hardware $\rightarrow$ CPU stalls with each memory fetch
+% Hardware advancements have scaled unevenly over the decades, with processor clock speeds advancing much faster than memory fetching speeds\ \cite{wulf_memorywall}. This problem is exacerbated when data sizes grow into terabyte, petabyte, or lately, exabyte levels. Distributed architectures are increasingly common, where storage is separated from computation. While the original problem can be motivated by the hardware and data on a home computer, it becomes exponentially costlier when external networks become the data bus with network latency.
 
-Problems with the Word RAM model
+Hardware advancements have scaled unevenly over the decades, with processor clock speeds advancing much faster than memory fetching speeds\ \cite{wulf_memorywall}. This problem is exacerbated when data sizes grow into terabyte, petabyte, or lately, exabyte levels\ \cite{boureima_exabyte}. Distributed architectures are increasingly common, where storage is separated from computation, including the complete disaggregation of memory\ \cite{shan_disaggregation}. While the original problem can be motivated by the hardware and data on a home computer, it becomes exponentially costlier when external networks become the data bus with network latency.
 
-In this paper, we will learn about cache optimization through the lens of the Cache-Oblivious model. Then we will explore a few algorithms, namely funnelsort, and what make them cache optimal on all hardware. We will focus this section primarily on the funnelsort algorithm, including our attempt at implementing it. Finally, we will discuss challenges we faced, limitations with our research, and potential for future work and improvements.
+Even at a small scale, consider a modern home computer with components purchased within the last year, equipped with Viper Xtreme 5 DDR5 6000MT/s CL30 memory and an AMD Ryzen 5 9600X 5.4GHz processor. According to standard latency calculations, fetching a block of memory for the first time requires 10 ns: 
+\[
+    \text{Latency (ns)} = \frac{2000 \cdot \text{CAS Latency}}{\text{RAM speed in MT/s}} = \frac{2000 \cdot 30}{6000} = 10 \text{ ns} 
+\]
+Within that same 10 ns time frame, the processor has already completed 54 clock cycles, as derived from its clock speed of 5.4 GHz. Without advanced hardware prefetchers, this would mean that the processor stalls for at least 54 clock cycles while waiting for data. And this is worse when you consider that all you likely wanted was a single word in the fetched block, underutilizing all the words that came alongside in that same block.
+
+This reveals a problem with the Word RAM model of algorithm analysis. It considers all memory fetches to be completely free, assigning costs only to processor instructions. Clearly this is a na\"{\i}ve view of the real world time complexity of this algorithm, as an algorithm that thrashes the memory would underperform one of similar Word RAM model runtime complexity that consumes all words in every block it fetches.
+
+In this paper, we will investigate cache optimization through the lens of the Cache-Oblivious model. Then we will explore a few algorithms, namely \textit{lazy funnelsort}, and examine what makes them cache optimal on all hardware. We will focus the algorithms section primarily on the lazy funnelsort algorithm, including our attempt at implementing it. While our original proposal targeted benchmarking this algorithm alongside other cache-oblivious algorithms, the complexity of designing and implementing optimal cache-oblivious algorithms proved challenging and time-consuming. Therefore, we will discuss the challenges we faced during the design and implementation of lazy funnelsort, the gap between the theoretical funnelsort model and real-world programming, and potential for future work built upon our groundwork.
 
 \section{The Cache-Oblivious Model}
+% 1.5 - 2 pages
+% - 0.5pg External Memory Model
+% - 0.5pg Ideal Cache Model and Assumptions
+% - 0.5pg Cache-Oblivious Model
 
-If cache optimality is the goal, we've already seen why the Word RAM model of analysis is not the optimal lens by which to analysze this. Though we've already alluded to us wanting to be oblivious to hardware specifications with our analysis, forcing the algorithms to be cache optimal regardless of the hardware it is running on, we believe that the cache-oblivious model is best understood intuitively by building up from analysis models that \textit{do} know hardware specifications.
+Since cache optimality is our goal, we've already seen why the Word RAM model of analysis is not the optimal lens by which to analyze this. Though we've already alluded to us wanting to be oblivious to hardware specifications with our analysis, forcing the algorithms to be cache optimal regardless of the hardware it is running on, we believe that the cache-oblivious model is best understood intuitively by building up from analysis models that \textit{do} know hardware specifications. Now that we have our basic memory layout defined, we can start with the External Memory Model.
 
-Naturally, the External Memory Model is the first in our journey. This model {(explain what its assumptions are, what it cares about, and what its limitations are)}. 
+\subsection{Groundwork: The External Memory Model and Ideal Cache Model}
+
+The External Memory Model observes only two arbitrary levels within the cache hierarchy\ \cite{demaine}. The higher level of these two levels will be our cache, and the lower level will be our memory\ \ref{fig:cache-visual}. Our cache has a total size of $M$ words, and we assume the memory contains $> M$ words\ \cite{demaine}. Data is stored and transferred in chunks, called blocks. Each block consists of $B$ words\ \cite{demaine}. Thus, our cache has $M/B$ cache lines, which is where blocks are stored when fetched from memory\ \cite{demaine}. 
+
+Every time a program needs data for the first time, it will need to load that from memory. Since it cannot simply fetch that word by itself, the entire block of $B$ words, one of which is the word the program requested, is transferred. If all cache lines are occupied, then the program must also first decide which cache line to empty by evicting the block from this cache line\ \cite{demaine}. Since the program is only interested in one word, it wastes the expensive memory transfer of all $B-1$ words that were unutilized in this block.
+
+The cost of transferring this block across the bus, and the associated latency of requesting it from memory, would be better amortized if we were able to use all $B$ words within this block. And we would like to do that without even knowing the hardware specific $B$ and $M$ parameters.
+
+\begin{figure}[htbp]
+        
+    \centering
+
+    \begin{tikzpicture}
+        % cache
+        \matrix (cache) [matrix of nodes, 
+                    nodes={inner sep=0pt, minimum width=0.1cm, minimum height=0.4cm, anchor=center}, 
+                    nodes in empty cells,
+                    column sep=0pt, 
+                    row sep=0pt,
+                    row 6/.style={nodes={fill=BurntOrange!40}}] 
+        {
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& \\ % line 1
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 2
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 3
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 4
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 5
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 6
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 7
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 8
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 9
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 10
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 11
+            %  &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 12
+            %  &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 13
+            %  &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 14
+            %  &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 15
+            %  &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 16
+        };
+
+        % rectangle lines
+        \draw (cache-1-1.north west) -- (cache-1-31.north east);
+        \draw (cache-1-31.north east) -- (cache-11-31.south east);
+        \draw (cache-11-31.south east) -- (cache-11-1.south west);
+        \draw (cache-11-1.south west) -- (cache-1-1.north west);
+
+        % row lines
+        \foreach \i in {1, ..., 11} {
+            \draw (cache-\i-1.south west) -- (cache-\i-31.south east);
+        }
+
+        % label
+        \node (cachelabel) at ([yshift=0.1cm]cache.north) {\textbf{Cache}};
+
+        % width
+        \draw[<->, thick] ([yshift=-0.3cm]cache-11-1.south west) -- ([yshift=-0.3cm]cache-11-31.south east) node[midway, below] {$1$ block $ = B$ words};
+
+        % height
+        \draw[<->, thick] ([xshift=-0.3cm]cache-1-1.north west) -- ([xshift=-0.3cm]cache-11-1.south west) node[midway, left] {$\frac{M}{B}$ cache lines};
+
+        % memory
+        \matrix (memory) [right=3cm of cache,
+                    matrix of nodes, 
+                    nodes={inner sep=0pt, minimum width=0.1cm, minimum height=0.4cm, anchor=center}, 
+                    nodes in empty cells,
+                    column sep=0pt, 
+                    row sep=0pt,
+                    row 3/.style={nodes={fill=Brown!40}}] 
+        {
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&& \\ % line 1
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 2
+            &&&&&&&&&&&&&&&&&&&&&&&&&|[fill=ForestGreen!30]|&&&&&  \\ % line 3
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 4
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 5
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 6
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 7
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 8
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 9
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 10
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 11
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 12
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 13
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 14
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 15
+            &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  \\ % line 16
+        };
+
+        % rectangle lines
+        \draw (memory-1-1.north west) -- (memory-1-31.north east);
+        \draw (memory-1-31.north east) -- (memory-16-31.south east);
+        \draw (memory-16-31.south east) -- (memory-16-1.south west);
+        \draw (memory-16-1.south west) -- (memory-1-1.north west);
+
+        % row lines
+        \foreach \i in {1, ..., 15} {
+            \draw (memory-\i-1.south west) -- (memory-\i-31.south east);
+        }
+
+        % label
+        \node (memorylabel) at ([yshift=0.1cm]memory.north) {\textbf{Memory}};
+
+        % message box
+        \node (message) at ([xshift=1.8cm, yshift=0.1cm]memory.north east) {\textcolor{ForestGreen}{only want this 1 word}};
+
+        % arrows
+        % message -> word we want
+        \draw[<-, thick, ForestGreen] (memory-3-26.north) to[out=90, in=180] (message.west);
+
+        % retrieve cache
+        \draw[<-, thick, Brown!40] ([xshift=0.1cm, yshift=0.1cm]cache-6-31.east) to[out=30, in=180] node[midway, fill=white, text=gray]{\tiny{fetch block}} ([xshift=-0.1cm]memory-3-1.west);
+
+        % evict cache
+        \draw[->, thick, BurntOrange!40] ([xshift=0.1cm, yshift=-0.1cm]cache-6-31.east) to[out=-30, in=180] node[midway, fill=white, text=gray]{\tiny{evict cached block}} ([xshift=-0.1cm]memory-14-1.west);
+
+    \end{tikzpicture}
+
+    \vspace{-2pt}
+    \footnotesize{\textcolor{gray}{Drawing aided by Gemini}}
+    \captionof{figure}{Representation of the cache}
+    \label{fig:cache-visual}
+\end{figure}
 
 We must then introduce the Ideal-Cache Model, as it now abstracts the hardware further. {(explain this model, what it assumes on top of the external memory model, but still has some limitations)}.
+
+- 
 
 Finally, we arrive at our long-awaited Cache-Oblivious Model. {(explain what this model does that none of the previous models did, acknowledge what assumptions we need to make for this model to work, and how those limitations affect the real world)}
 
@@ -71,13 +213,18 @@ With the Cache-Oblivious Model in hand, we are now ready to examine actual data 
 %We will focus primarily on algorithms, though we will be required to understand the data structure supporting it as this becomes critical in cache optimization.
 
 
-\section{Algorithm / Data Structure To Understand Before Funnelsort}
+\section{Cache-Oblivious van Emde Boas Trees}
+% 1 - 1.5pg
 
-\textit{(Might have to yap about some data structures or algorithms before introducing funnelsort)}
+To lay the groundwork for the data structure that enables a cache optimal \textit{lazy funnelsort} algorithm, we need to examine the cache-oblivious van Emde Boas trees.
 
-We are now well equipped to study the funnelsort algorithm. This sorting algorithm utilizes concepts directly from the data structures and algorithms we have already examined in the cache-oblivious model.
+\ldots
 
-\section{Funnelsort}
+We are now well equipped to study the \textit{lazy funnelsort} algorithm. This sorting algorithm utilizes concepts directly from the data structures and algorithms we have already examined in the cache-oblivious model.
+
+\section{Lazy Funnelsort}
+% 2.5 - 3 pages
+% - 0.5pg Intro
 
 Funnelsort may be a novel sorting algorithm, but its roots are inherited from mergesort. Let's build up to the funnelsort algorithm through targetting cache optimality in mergesort.
 
@@ -87,19 +234,29 @@ The basic $2$-way mergesort has a runtime complexity of $O(n \log n)$ in the Wor
 {(introduce funnelsort)}
 
 \subsection{How it works}
+% 1pg 
 
 \subsection{Spatial complexity}
+% 0.5 pg
 
 \subsection{Cache complexity}
+% 0.5 - 1pg
+
+\textcolor{red}{(need to talk about why funnelsort is cache optimal without knowing $M$ and $B$, maybe even a quick comparison to why the $2$-way mergesort does not become cache optimal at some nested level since it doesn't utilize the max number of cache lines)}
 
 \section{Implementing Funnelsort}
+% 1.5 - 2pg
 
 \section{Challenges}
+% 1.5 - 2pg
+
+\textcolor{red}{(challenges we faced in understanding the theoretical cache-oblivious model and funnelsort, and also challenges of implementing)}
 
 \section{Limitations and Future Work}
+% 1pg
 
 \section{Conclusion}
-
+% 0.5pg
 
 % Example of how to insert C++ code
 % \begin{lstlisting}[language=C++, caption=Some caption]
@@ -109,7 +266,6 @@ The basic $2$-way mergesort has a runtime complexity of $O(n \log n)$ in the Wor
 % \end{lstlisting}
 
 
-\bibliographystyle{plain}
-\bibliography{references} % Requires a references.bib file
+\printbibliography%
 
 \end{document}
