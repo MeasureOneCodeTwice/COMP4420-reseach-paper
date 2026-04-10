@@ -14,6 +14,8 @@
 % \usepackage{parskip}
 \usepackage[style=ieee, backend=biber]{biblatex}
 \addbibresource{bibliography.bib}
+\graphicspath{{../figures/}}
+
 
 % --- Code Block Styling ---
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -78,7 +80,7 @@ In this paper, we will investigate cache optimization through the lens of the Ca
 % - 0.5pg External Memory Model
 % - 1pg Cache-Oblivious Model
 
-Since cache optimality is our goal, we've already seen why the Word RAM model of analysis is not the optimal lens by which to analyze this. Though we've already alluded to us wanting to be oblivious to hardware specifications with our analysis, forcing the algorithms to be cache optimal regardless of the hardware it is running on, we believe that the cache-oblivious model is best understood intuitively by building up from analysis models that \textit{do} know hardware specifications. Now that we have our basic memory layout defined, we can start with the External Memory Model.
+Since cache optimality is our goal, we have already seen why the Word RAM model of analysis is not the optimal lens by which to analyze this. Though we have already alluded to us wanting to be oblivious to hardware specifications with our analysis, forcing the algorithms to be cache optimal regardless of the hardware it is running on, we believe that the cache-oblivious model is best understood intuitively by building up from analysis models that \textit{do} know hardware specifications. Now that we have our basic memory layout defined, we can start with the External Memory Model.
 
 The External Memory Model observes only two arbitrary levels within the cache hierarchy~\cite{demaine}. The higher level of these two levels will be our cache, and the lower level will be our memory~\ref{fig:cache-visual}. Our cache has a total size of $M$ words, and we assume the memory contains $> M$ words~\cite{demaine}. Data is stored and transferred in chunks, called blocks. Each block consists of $B$ words~\cite{demaine}. Thus, our cache has $M/B$ cache lines, which is where blocks are stored when fetched from memory~\cite{demaine}. 
 
@@ -205,7 +207,7 @@ So far under the External Memory Model, the program is responsible for the optim
 
 Similar to the External Memory Model, the Cache-Oblivious Model is a theoretical machine that consists only of two levels of cache hierarchy, the small, fast cache and the slow, large memory~\cite{demaine}.\footnote{Cache obliviousness was originally introduced as a chosen property of the Ideal-Cache Model by Frigo et al., where the model was still aware of hardware parameters but the algorithms could choose to ignore them, thus making them cache oblivious~\cite{frigo}. We will follow Demaine's lead in introducing the Cache-Oblivious Model to hold the cache oblivious properties built atop the Ideal-Cache Model~\cite{demaine}.} 
 
-Contrary to the External Memory Model, the Cache-Oblivious Model places the responsibility of the optimal cache replacement strategy on the machine itself and not the programs run on it~\cite{demaine}. This optimal cache replacement strategy is one where the cache line holding the block that will be used furthest in the future is the one that's evicted next, ensuring temporal locality~\cite{demaine}. Demaine assures us that this strategy can be substituted, without loss of optimality, with the Least Recently Used (LRU) eviction strategy~\cite{demaine}. 
+Contrary to the External Memory Model, the Cache-Oblivious Model places the responsibility of the optimal cache replacement strategy on the machine itself and not the programs run on it~\cite{demaine}. This optimal cache replacement strategy is one where the cache line holding the block that will be used furthest in the future is the one that is evicted next, ensuring temporal locality~\cite{demaine}. Demaine assures us that this strategy can be substituted, without loss of optimality, with the Least Recently Used (LRU) eviction strategy~\cite{demaine}. 
 
 The Cache-Oblivious Model also takes on the Tall Cache assumption, $M \in \Omega(B^2)$, which assumes that the cache itself contains $\ge B^2$ words~\cite{demaine}. This will ensure that the number of cache lines $= M/B \ge B^2/B = B$, meaning that it is at least as tall as it is wide. 
 
@@ -220,21 +222,50 @@ Before examining \textit{lazy funnelsort}, we must first understand the underlyi
 \section{Cache-Oblivious van Emde Boas Trees}
 % 1 - 1.5pg
 
-To lay the groundwork for the data structure that enables a cache optimal \textit{lazy funnelsort} algorithm, we need to examine the cache-oblivious van Emde Boas trees. We will assume the reader is already familiar with the standard van Emde Boas trees, as are usually studied within the Word RAM model. We will merely adopt them to the Cache-Oblivious Model in order to store a large data set cache optimally.
+To lay the groundwork for the data structure that enables a cache optimal \textit{lazy funnelsort} algorithm, we need to examine cache-oblivious van Emde Boas (vEB) trees. We assume the reader is already familiar with standard vEB trees, as are usually studied within the Word RAM model. We will adapt the vEB data structure to the Cache-Oblivious Model to optimally store large datasets. Accordingly, we will focus only on the static vEB tree, exploring only its memory layout and space complexity while ignoring dynamic operations.
 
+A cache-oblivious vEB tree of $N$ nodes is recursively divided into a \textit{summary} vEB tree of size $\sqrt{N}$ and $\sqrt{N}$ \textit{cluster} vEB trees, each also of size $\sqrt{N}$~\cite{demaine}. 
 
+Conceptually, the tree's height is divided in half, with the summary tree forming the top half and the clusters forming the bottom half~\cite{demaine} (Figure~\ref{fig:veb-tree}). To optimally store this data, these subtrees are laid out sequentially within a single contiguous segment of memory: the summary tree is placed first, followed immediately by the cluster trees ordered from left to right~\cite{demaine} (Figure~\ref{fig:veb-layout}).
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{image6.png}
+    \captionof{figure}{vEB layout (left) and vEB tree of height 5 (right). Reproduced from Demaine~\cite{demaine}.}
+    \label{fig:veb-tree}
+\end{figure}
 
+\begin{figure}[htbp]
+        
+    \centering
 
-\ldots
+    \begin{tikzpicture}
+        % layout
+        \matrix (memory) [matrix of nodes, 
+                    nodes={draw, minimum width=0.1cm, minimum height=1cm, anchor=center}, 
+                    nodes in empty cells,
+                    column sep=0pt, 
+                    row sep=0pt] 
+        {
+            Summary & Cluster $1$ & Cluster $2$ & \ldots & Cluster $\sqrt{N}$ \\
+        };
 
-We are now well equipped to study the \textit{lazy funnelsort} algorithm. This sorting algorithm utilizes concepts directly from the data structures and algorithms we have already examined in the cache-oblivious model.
+    \end{tikzpicture}
+
+    \vspace{-2pt}
+    \captionof{figure}{Memory layout of an $N$-node vEB tree}
+    \label{fig:veb-layout}
+\end{figure}
+
+Since the vEB tree recurses into smaller subtrees stored sequentially in memory, the recursion guarantees that at some level, the subtrees will reach a size of $\le B$ words~\cite{demaine}. This subtree would therefore occupy at most two consecutive memory blocks as it may not be perfectly block aligned, and thus require at most two memory transfers to load the entire subtree into cache~\cite{demaine}. Any subsequent memory operations within this subtree would require no additional memory transfers, having an $O(1)$ cache complexity. 
+
+We are now well equipped to study the \textit{lazy funnelsort} algorithm. The vEB memory layout will be key in making the \textit{lazy funnelsort} cache optimal.
 
 \section{Lazy Funnelsort}
 % 2.5 - 3 pages
 % - 0.5pg Intro
 
-Funnelsort may be a novel sorting algorithm, but its roots are inherited from mergesort. Let's build up to the funnelsort algorithm through targetting cache optimality in mergesort.
+Funnelsort may be a novel sorting algorithm, but its roots are inherited from mergesort. Let us build up to the funnelsort algorithm through targetting cache optimality in mergesort.
 
 We are well familiar with mergesort. {(quick recap)} 
 The basic $2$-way mergesort has a runtime complexity of $O(n \log n)$ in the Word RAM model. {(examine mergesort in cache-oblivious model, then make it more cache optimal, only to realize we needed to know hardware specs to do so.. )} We can achieve the same cache complexity without knowing any hardware specifications. 
@@ -275,5 +306,72 @@ The basic $2$-way mergesort has a runtime complexity of $O(n \log n)$ in the Wor
 
 
 \printbibliography%
+
+
+\textcolor{red}{Logan: not sure where you'll want these diagrams, but I am guessing you'll want it somewhere in your explanations}
+
+% text on the left side of an image
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        Whatever text you want on the left side of the image. If you want to make the columns wider for the text or wider for the image, just adjust the \verb|{0.48\textwidth}|. You can also make the image itself bigger within its column by changing the \verb|[width=1.0\linewidth]|. To refer to the image, just use \verb|\ref{fig:funnel-visual}| or whatever the label is for the image.
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=1.0\linewidth]{image4.png}
+        \caption{K-Funnel representation}
+        \label{fig:funnel-visual}
+    \end{minipage}
+\end{figure}
+
+% two images side-by-side
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.8\linewidth]{image5.png}
+        \caption{2-Funnel representation}
+        \label{fig:base-funnel-visual}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=1.0\linewidth]{image4.png}
+        \caption{K-Funnel representation}
+        \label{fig:funnel-visual}
+    \end{minipage}
+\end{figure}
+
+% Figure by itself
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=0.48\textwidth]{image5.png}
+%     \caption{2-Funnel representation}
+%     \label{fig:base-funnel-visual}
+% \end{figure}
+
+\begin{figure}[htbp]
+        
+    \centering
+
+    \begin{tikzpicture}
+        % layout
+        \matrix (memory) [matrix of nodes, 
+                    nodes={draw, minimum width=1.0cm, minimum height=1cm, anchor=center}, 
+                    nodes in empty cells,
+                    column sep=0pt, 
+                    row sep=0pt] 
+        {
+            Top $\sqrt{K}$-funnel & Middle Buffers & Bottom $\sqrt{K}$-funnel $1$ & Bottom $\sqrt{K}$-funnel $2$ & \ldots & Bottom $\sqrt{K}$-funnel $\sqrt{K}$ \\
+        };
+
+    \end{tikzpicture}
+
+    \vspace{-2pt}
+    \captionof{figure}{Memory layout of a $K$-funnel}
+    \label{fig:funnel-layout}
+\end{figure}
+
 
 \end{document}
