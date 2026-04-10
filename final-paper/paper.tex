@@ -224,9 +224,7 @@ Before examining \textit{lazy funnelsort}, we must first understand the underlyi
 
 To lay the groundwork for the data structure that enables a cache optimal \textit{lazy funnelsort} algorithm, we need to examine cache-oblivious van Emde Boas (vEB) trees. We assume the reader is already familiar with standard vEB trees, as are usually studied within the Word RAM model. We will adapt the vEB data structure to the Cache-Oblivious Model to optimally store large datasets. Accordingly, we will focus only on the static vEB tree, exploring only its memory layout and space complexity while ignoring dynamic operations.
 
-A cache-oblivious vEB tree of $N$ nodes is recursively divided into a \textit{summary} vEB tree of size $\sqrt{N}$ and $\sqrt{N}$ \textit{cluster} vEB trees, each also of size $\sqrt{N}$~\cite{demaine}. 
-
-Conceptually, the tree's height is divided in half, with the summary tree forming the top half and the clusters forming the bottom half~\cite{demaine} (Figure~\ref{fig:veb-tree}). To optimally store this data, these subtrees are laid out sequentially within a single contiguous segment of memory: the summary tree is placed first, followed immediately by the cluster trees ordered from left to right~\cite{demaine} (Figure~\ref{fig:veb-layout}).
+A cache-oblivious vEB tree of $N$ nodes is recursively divided into a \textit{summary} vEB tree of size $\sqrt{N}$ and $\sqrt{N}$ \textit{cluster} vEB trees, each also of size $\sqrt{N}$~\cite{demaine}. Conceptually, the tree's height is divided in half, with the summary tree forming the top half and the clusters forming the bottom half~\cite{demaine} (Figure~\ref{fig:veb-tree}). To optimally store this data, these subtrees are laid out sequentially within a single contiguous segment of memory: the summary tree is placed first, followed immediately by the cluster trees ordered from left to right~\cite{demaine} (Figure~\ref{fig:veb-layout}).
 
 \begin{figure}[htbp]
     \centering
