@@ -1,6 +1,9 @@
 ## Vscode stuff
 **/.vscode
 
+## Apple junk
+**/.DS_STORE
+
 ## Core latex/pdflatex auxiliary files:
 **/*.aux
 **/*.lof

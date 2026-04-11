@@ -269,28 +269,27 @@ Funnelsort may be a novel sorting algorithm, but its roots are in mergesort. Let
 
 Firstly, lets analyse in depth the most basic form of merge sort, a two way merge sort. For an input array of size $n$ this algorithm recursively splits the input array into $2$ halves of size $h$. These halves are sorted (by merge sort) and merged together by performing a linear scan on each input array and writing in a linear scan to an output array. Given the array is not already in cache, scanning each input array costs $\frac{h}{B}$ memory transfers and writing to the output array costs $\frac{2h}{B}$ memory transfers. From this we create the cost tree in Figure \ref{fig:two-way-merge-sort-cost-tree}. The cost of each layer of the tree sums to $4\frac{n}{B}$ and the tree has height $log_2n$.
 \begin{align*}
-    & 
-    B \geq 
+    && B &\geq 
     \frac{n}{2^d} + 2^1\frac{n}{2^{d + 1}} + 2^2\frac{n}{2^{d + 2}} + \cdots + 2^{(  \log_2n - d ) }\frac{n}{2^{d + (\log_2n - d)}} 
-    \\ & 
-    \Rightarrow 
-    B \geq 
+    \\ 
+    & \implies 
+    & B &\geq 
     (\log_2n - d)\frac{n}{2^{d}}
-    \\ & 
-    \Rightarrow 
-    B \geq 
+    \\ 
+    & \implies 
+    & B &\geq 
     \frac{n}{2^{d}}
-    \\ & 
-    \Rightarrow 
-    \frac{B}{n} \geq 
+    \\ 
+    & \implies 
+    & \frac{B}{n} &\geq 
     \frac{1}{2^{d}}
-    \\ & 
-    \Rightarrow 
-    2^{d} \geq
+    \\ 
+    & \implies 
+    & 2^{d} &\geq
     \frac{n}{B} 
-    \\ & 
-    \Rightarrow 
-    d \geq
+    \\ 
+    & \implies 
+    & d &\geq
     \log_2\frac{n}{B} 
 \end{align*}
 \begin{wrapfigure}{r}{0.5\textwidth}
@@ -362,6 +361,23 @@ These internal buffers, of which there are $\sqrt{k}$ are used as inputs to the 
 
 \subsection{Spatial complexity}
 
+This entire funnelsort structure is very reminiscent of the vEB trees. As such, the recurrence relation, as we'll discover, is very similar. 
+
+Let's start by examining the local cost of each $K$-funnel. The only space occupied in each instance of a $K$-funnel is the $\sqrt{K}$ number of buffers. Each of these buffers are $K^{3/2}$ in size. Thus, each $K$-funnel instance has a local space complexity of $K^{3/2} \cdot \sqrt{K} = K^{2}$ words.
+
+The funnels are recursively defined such that there is one top $\sqrt{K}$-funnel and $\sqrt{K}$ number of bottom $\sqrt{K}$-funnels. Thus, there are a total of $(\sqrt{K} + 1)$ number of $\sqrt{K}$-funnels. This will continue down until we hit the base case of a $2$-funnel, which is actually just a $2$-way merger with no middle buffers at all, thus a small constant space $O(1)$.
+
+Therefore, we have the recurrence relation
+
+\begin{align*}
+    S(K) = 
+    \begin{cases}
+        O(1), & K \le 2 \\
+        (\sqrt{K} + 1)S(\sqrt{K}) + K^2 & K > 2
+    \end{cases} 
+\end{align*}
+
+As Demaine points out, this recurrence has $O(K)$ leaves, each of which use $O(1)$ space, for a total leaf cost of $O(K)$~\cite{demaine}. Since the root funnel cost is $K^2$, this dominates the space complexity~\cite{demaine}. Thus, $S(K) \in \Theta(K^2)$.
 
 \subsection{Cache complexity}
 \begin{wrapfigure}{r}{0.5\textwidth}{
@@ -424,59 +440,5 @@ Any given node can have an output buffer of size at most $(n^\frac{1}{3})^\frac{
 
 
 \printbibliography%
-
-
-\textcolor{red}{Logan: not sure where you'll want these diagrams, but I am guessing you'll want it somewhere in your explanations}
-
-% text on the left side of an image
-\begin{figure}[htbp]
-    \centering
-    \begin{minipage}{0.48\textwidth}
-        Whatever text you want on the left side of the image. If you want to make the columns wider for the text or wider for the image, just adjust the \verb|{0.48\textwidth}|. You can also make the image itself bigger within its column by changing the \verb|[width=1.0\linewidth]|. To refer to the image, just use or whatever the label is for the image.
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=1.0\linewidth]{image4.png}
-        \caption{K-Funnel representation}
-    \end{minipage}
-\end{figure}
-
-% two images side-by-side
-\begin{figure}[htbp]
-    \centering
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=0.8\linewidth]{image5.png}
-        \caption{2-Funnel representation}
-        \label{fig:base-funnel-visual}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-            \end{minipage}
-\end{figure}
-
-Figure by itself
-
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}
-        % layout
-        \matrix (memory) [matrix of nodes, 
-                    nodes={draw, minimum width=1.0cm, minimum height=1cm, anchor=center}, 
-                    nodes in empty cells,
-                    column sep=0pt, 
-                    row sep=0pt] 
-        {
-            Top $\sqrt{K}$-funnel & Middle Buffers & Bottom $\sqrt{K}$-funnel $1$ & Bottom $\sqrt{K}$-funnel $2$ & \ldots & Bottom $\sqrt{K}$-funnel $\sqrt{K}$ \\
-        };
-
-    \end{tikzpicture}
-
-    \vspace{-2pt}
-    \captionof{figure}{Memory layout of a $K$-funnel}
-    \label{fig:funnel-layout}
-\end{figure}
-
 
 \end{document}
