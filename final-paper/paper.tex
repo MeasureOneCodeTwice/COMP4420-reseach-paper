@@ -338,7 +338,7 @@ each of which costing $4\frac{n}{B}$ memory transfers for a total cost of $4\fra
 
 
 While optimal in terms of work cost, this algorithm is not optimal in terms of memory transfers. 
-We can improve this algorithm by using a $\frac{M}{B} - 1$ way merge sort. While merging, a $\frac{M}{B} - 1$ keeps one block from each subproblem and one block of the output array in cache at once, completely filling it up and keeping the local cost to $\frac{n}{B}$. Since the recursion tree has branch factor of $\frac{M}{B}$ its height is $\log_\frac{M}{B}\frac{n}{B}$. 
+We can improve this algorithm by using a $\frac{M}{B} - 1$ way merge sort. While merging, a $\frac{M}{B} - 1$ keeps one block from each subproblem and one block of the output array in cache at once, completely filling it up and keeping the local cost to $\frac{n}{B}$. Since the recursion tree has branch factor of $\frac{M}{B}$ its height is $\log_\frac{M}{B}\frac{n}{B}$ and the total cost for sorting is $\frac{n}{B}\log_\frac{M}{B}\frac{n}{B}$. 
 This results matches the cache oblivious sorting lower bound ~\cite{frigo}. 
 Unfortunately, as in the name of the cache oblivious model, our algorithms must be oblivious to $M$ and $B$. Since this algorithm requires knowledge of both variables it isn't cache oblivious. Fortunately, we can use the idea of a $\frac{M}{B}$ to create a cache oblivious with the same, optimal asymptotic cost.
 
@@ -371,6 +371,8 @@ These internal buffers, of which there are $\sqrt{k}$ are used as inputs to the 
     \label{fig:k-funnel-deep}
 }
 \end{wrapfigure}
+As it has been done before, we will not formally prove Funnel sort's cache complexity. Instead, we will try to give the reader an intuitive understanding of how Funnelsort emulates a $\frac{M}{B}$ way merge.
+
 As with Cache-Oblivious van Emde Boas trees at some point in the funnel's recursion instances will be small to fit entirely in cache.
 This is the key to Funnel sort's cache complexity.
 
@@ -378,20 +380,82 @@ Funnel sort uses a $k = n^\frac{1}{3}$ funnel as pictured in \ref{fig:funnel-vis
 A K-Funnel's space complexity is $\Theta(k^2)$. 
 By the tall cache assumption our cache has $M \in \Omega(B^2)$ words of memory.
 This means a $k = B$ funnel fits entirely in cache.
-To avoid confusion, for the rest of this section $k$ refers to size of the largest recursive instance of funnel that fits in cache
-and the size of the root funnel will be referred to in terms of n.
 
-We can think of our $n^\frac{1}{3}$-Funnel as a complete tree of k funnels with branching factor k.
+We can think of our $k$-Funnel as a complete tree of B funnels with branching factor B.
 We will inspect the properties this tree, in the same manner we analysed merge-sort's recursion tree.
-Calculating the number of nodes in the tree is quite simple.
-Since our root funnel instance has $n^\frac{1}{3}$ input buffers the bottom level of our tree must have $n^\frac{1}{3}/k$ funnels, each merging k of the $n^\frac{1}{3}$ buffers. As with any complete tree in total must be less than double the number of nodes in leaf level. Hence, our tree has less than $2n^\frac{1}{3}k$ nodes.
+To start, we know that any complete B-ary tree on n nodes has height $\lfloor log_kB \rfloor$. 
 
-Since each k-funnel. The cost any node contributes to the funnel sort algorithm is equal to the number of times it must fill its output buffer.
+The cost any node contributes to the funnel sort algorithm is equal to the number of times it must fill its output buffer.
 Not all nodes have the same output buffer size. For example the root level node has an output buffer of size $n$ while a leaf node has an output buffer of size $k^3$. 
-The minimum size of an size buffer is bounded by $k^3$.
-This means at most 
-Any given node can have an output buffer of size at most $(n^\frac{1}{3})^\frac{2}{3}$ in the case 
 
+\begin{align*}
+&
+\text{ From leaf to root the sequence of buffer sizes buffer sizes follows the pattern }
+\\ &
+B^3    \rightarrow 
+B^6    \rightarrow 
+B^3    \rightarrow 
+B^{12} \rightarrow 
+B^3    \rightarrow 
+B^6    \rightarrow 
+B^3 
+\\ &
+\text{ which can be verified by inspection of Figure \ref{fig:k-funnel-deep}. }
+\\ &
+\text{ From this sequence we can derive the number of funnel invocations } 
+\\ &
+\text{ by using elements that must pass through the buffer as the numerator}
+\\ &
+\frac{k^{1} n^\frac{2}{3}}   {B^3}    \rightarrow 
+\frac{k^{2} n^\frac{2}{3}}   {B^6}    \rightarrow 
+\frac{k^{3} n^\frac{2}{3}}   {B^3}    \rightarrow
+\frac{k^{4} n^\frac{2}{3}}   {B^{12}} \rightarrow 
+\frac{k^{5} n^\frac{2}{3}}   {B^3}    \rightarrow 
+\frac{k^{6} n^\frac{2}{3}}   {B^6}    \rightarrow
+\frac{k^{7} n^\frac{2}{3}}   {B^3}
+\\ &
+\text{And multiply by the number of funnels to get the number of invocations per level}
+\\ &
+\frac{k^{7}k^{1} n^\frac{2}{3}}   {B^3}    \rightarrow 
+\frac{k^{6}k^{2} n^\frac{2}{3}}   {B^6}    \rightarrow 
+\frac{k^{5}k^{3} n^\frac{2}{3}}   {B^3}    \rightarrow
+\frac{k^{4}k^{4} n^\frac{2}{3}}   {B^{12}} \rightarrow 
+\frac{k^{3}k^{5} n^\frac{2}{3}}   {B^3}    \rightarrow 
+\frac{k^{2}k^{6} n^\frac{2}{3}}   {B^6}    \rightarrow
+\frac{k^{1}k^{7} n^\frac{2}{3}}   {B^3} =
+\\ &
+\frac{k^{8} n^\frac{2}{3}}   {B^3}    \rightarrow 
+\frac{k^{8} n^\frac{2}{3}}   {B^6}    \rightarrow 
+\frac{k^{8} n^\frac{2}{3}}   {B^3}    \rightarrow
+\frac{k^{8} n^\frac{2}{3}}   {B^{12}} \rightarrow 
+\frac{k^{8} n^\frac{2}{3}}   {B^3}    \rightarrow 
+\frac{k^{8} n^\frac{2}{3}}   {B^6}    \rightarrow
+\frac{k^{8} n^\frac{2}{3}}   {B^3}
+\\ &
+\text{ Notice that each item of the sequence has the same numerator. }
+\\ &
+\text{ The denominators of this sequence are arranged in the order of a full binary tree  }
+\\ &
+\text{ where each leaf has value $B^3$ and each step up the tree is the square of a node of the previous height. }
+\\ &
+\text{ Since a b-ary tree with n items has $\lfloor \log_bn \rfloor$ items we know our k-funnel has less than $2\lfloor \log_bn \rfloor$ items. }
+\\ &
+\text { Hence our sequence tree has less than $log_2log_m(n)$ items.}
+% \\ & 
+% test
+% \sum_{i=1}^{\log_2\log_bn}
+% \frac{1}    {B^5    n^\frac{2}{3}} \rightarrow 
+% \frac{1}    {B^2    n^\frac{2}{3}} \rightarrow 
+% \frac{1}    {B^5    n^\frac{2}{3}} \rightarrow
+% \frac{1}    {B^{-4} n^\frac{2}{3}} \rightarrow 
+% \frac{1}    {B^1    n^\frac{2}{3}} \rightarrow 
+% \frac{1}    {B^2    n^\frac{2}{3}} \rightarrow
+% \frac{1}    {B^5    n^\frac{2}{3}}
+\end{align*}
+Any given node can have an output buffer of size at most $(n^\frac{1}{3})^\frac{2}{3}$. Further, it can be shown that the average number of times a k-funnel is evoked at any level is $O(n/k)$.
+
+We can multiply the cost by the total number of levels in the tree to obtain $O(n^\frac{1}{3}/k) * \lfloor log_kn \rfloor = ...$
+\footnote{Unfortunately, we do not have the math for a proof, but must work backwards from the assumption that funnelsort has the optimal bound of $O(\frac{n}{B}\log_\frac{M}{B}\frac{n}{B})$ proved by other papers.} 
 
 % 1pg 
 
@@ -402,14 +466,46 @@ Any given node can have an output buffer of size at most $(n^\frac{1}{3})^\frac{
 \textcolor{red}{(need to talk about why funnelsort is cache optimal without knowing $M$ and $B$, maybe even a quick comparison to why the $2$-way mergesort does not become cache optimal at some nested level since it doesn't utilize the max number of cache lines)}
 
 \section{Implementing Funnelsort}
-% 1.5 - 2pg
+Our choice of of implementation language was guided by two factors. The first being enough control over memory to get the K-Funnel laid out contiguous in vEB order. Secondly, we wanted a relatively high level object oriented programming language. With these considerations in mind, we chose C++. Looking back, we didn't actually need too much fine control over memory, only the guarantee that arrays are laid out contiguously in memory, but we were able to take advantage of C++ in other ways.
 
+We implementation had three phases
+The first phase was a rough sketch of a psuedocode implementation. The second phase was fleshing out our psuedocode implementation with a proper, functioning C++ program. The third phase was dedicated to modifying the K-Funnel to use a memory arena instead of the default C++ allocator to have the funnel it stored contiguous in memory.
+
+The first phase of the three was the most intellectually stimulating. The main challenge was simply wrapping our heads around a recursive data structure's possible implementation. This stage started with research and the coalescence of multiple papers explaining the structure of the K-Funnel into Figure \ref{fig:funnel-visual}, an aid which has been useful even during the writing of this paper. The actual "coding" step of this stage was a two hour meeting the majority of which was spent struggling and consulting Figure \ref{fig:funnel-visual}. Then, an epiphany: a funnel should own only its output and not input buffers, followed by 10 minutes of writing psuedocode.
+
+The second stage, aside from resulting in a working prototype, mostly served to improve the precision of our understanding of the K-Funnel. This stage begun by drawing multiple K-Funnels to maximum depth. It was this stage in which we had realisations such as the deepest recursive level of the tree using 2-mergers to merge massive $n^\frac{2}{3}$ element buffers and the top the tree using a 2-merger with a size $n$ output buffer. The main challenge we faced in this stage were the issues resulting from non-power of two input sizes, which resulted in non-integer funnel and buffer. This challenge was solved after extensive experimentation and debugging and \verb|std::ceil()|ing. 
+
+
+
+The final stage of our implementation was a massive refactor of our second stage's code. The majority of this stage's work was in the creation of a memory arena and the modification of our K-Funnel to use said arena. It wasn't the memory arena its self which was challenge to implement, but was the calculation of memory required by a K-Funnel and all of its recursive instances. Initially, we planned to improve performance by using funnels smaller than $\sqrt{k}$ when an funnel would have less than $k$ input buffers, which happens when when n is not a power of two. We scrapped this idea due to complexity it introduced in our memory requirement calculations. Next was the modification of the K-Funnel to use the memory arena.
+\begin{minipage}{1\textwidth}
+\begin{lstlisting}[language=C++, caption=Buffer allocation using memory arenas]
+void KFunnel::create_middle_buffers(KFunnelArenas arenas)
+{
+    this->middle_buffers = arenas.buffer_arena->allocate( 
+        this->num_middle_buffers() 
+    );
+    for(int i = 0; i < this->num_middle_buffers(); i++)
+    {
+        this->middle_buffers[i] = Buffer(
+            arenas.buffer_space_arena->allocate( this->middle_buffer_size() )
+        );
+    }
+}
+\end{lstlisting}
+\end{minipage}
+While not complex, this change took a massive amount of time. It required us to migrate the code from arrays of pointers to the \verb|std::span<T>|, which is a window into a contiguous section of an array. These changes were very costly because they required touching a large breadth of the codebase, usually by chasing and fixing compiler errors, causing another to spring up in its place.
+
+The implementation of funnel sort was very time consuming, but not without benefit. We were forced to understand the structure of the K-Funnel down to the most minute details . In the end our implementation is roughly 4 times slower than a merge sort on \verb|INT_MAX / 256| items, taking 16 seconds where merge sort takes 4. While unable to test with larger datasets, especially using over the network databases as "disk" and main memory as "cache", we believe that our implementation will scale preferably to merge sort when data size and cache miss penalties grow.
 \section{Challenges}
-% 1.5 - 2pg
+Aside from challenges in implementation, which we detailed in the above section we have a single challenge haunt us throughout the entire process of creating this paper. Our goal was an intuitive understanding not of how lazy funnelsort works, but of \textit{why} it achieves the optimal $\frac{n}{B}\log_\frac{M}{B}\frac{n}{B}$ cache complexity.
 
-\textcolor{red}{(challenges we faced in understanding the theoretical cache-oblivious model and funnelsort, and also challenges of implementing)}
+To this end, we have failed. In section 4.3 Cache Complexity we gave a brief sketch of the beginnings of an intuitive understanding, but were not able to show with the proper math backing that our understanding is correct. Specifically, we were not able to prove that the average number of times an instance of the largest K-Funnel that can fit in cache is $O(n^{2}{3})$.
 
 \section{Limitations and Future Work}
+Two items of future work exist. The first, mentioned in section 5 Implementing Funnelsort is further testing on larger datasets with greater, millisecond scale cache miss penalties. We believe that these experiments will yield favourable results for the funnelsort algorithm and server as a greater motivation for the paper.
+
+The second future work item is optimization of our current implementation. One such optimisation is to create funnels smaller than $\sqrt{k}$ when the number data-filled of buffers are less than $k$. Additionally, although we store funnel objects in vEB we do not yet store the buffers in vEB. This is due to a constraint is our original design. Our current buffer ownership paradigm is the funnels own their output buffers, but not input buffers. To store buffers in vEB order this ownership would need to be flipped, with funnels owning their input buffers but not owning their output buffers. 
 % 1pg
 
 \section{Conclusion}
